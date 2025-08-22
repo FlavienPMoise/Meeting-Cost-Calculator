@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4 text-center">MEETING: {{ meeting_name }}</h1>
+<div class="container mb-3 text-center">
+    <span class="display-big fw-bold d-block mb-3" style="font-size:3rem;">
+        Cost per second: ${{ "%.4f"|format(cost_per_second) }} USD
+    </span>
+    <span id="timer" class="display-giant fw-bold d-block mb-4 text-primary">
+        00:00:00
+    </span>
+    <span class="display-giant fw-bold d-block mb-3 text-danger">
+        $<span id="total-cost">0.00</span>
+    </span>
+</div>
+<div class="text-center mt-2 mb-3">
+    <form method="POST" action="/stop_meeting">
+        <button type="submit" class="btn btn-danger btn-lg">STOP MEETING</button>
+    </form>
+</div>
+<div class="text-center">
+    <img id="money-gif" src="https://media.giphy.com/media/67ThRZlYBvibtdF9JH/giphy.gif" alt="Money burning"
+         style="width:220px;display:none;"/>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+const costPerSecond = {{ cost_per_second }};
+let seconds = 0, totalCost = 0;
+let nextGifCost = 100;
+function pad(x) { return x.toString().padStart(2, '0'); }
+function updateTimer() {
+    seconds++;
+    let h = Math.floor(seconds/3600),
+        m = Math.floor((seconds%3600)/60),
+        s = seconds%60;
+    document.getElementById('timer').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+    totalCost = seconds * costPerSecond;
+    document.getElementById('total-cost').textContent = totalCost.toFixed(2);
+    if (totalCost >= nextGifCost) {
+        showMoneyGif();
+        nextGifCost += 100;
+    }
+}
+function showMoneyGif() {
+    const gif = document.getElementById('money-gif');
+    gif.style.display = 'inline-block';
+    setTimeout(() => { gif.style.display='none'; }, 2000);
+}
+setInterval(updateTimer, 1000);
+</script>
+{% endblock %}

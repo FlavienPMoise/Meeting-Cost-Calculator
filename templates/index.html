@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="text-center">TIME IS MONEY</h1>
+<p class="subtitle mb-3 text-center">Meeting participants' billing rates</p>
+<!-- Horizontal Meeting Info -->
+<div class="row mb-3 align-items-end justify-content-center">
+    <div class="col-md-6">
+        <label for="meeting-name" class="form-label">Meeting Name</label>
+        <input type="text" id="meeting-name" class="form-control" maxlength="100" required placeholder="Enter meeting name">
+    </div>
+    <div class="col-md-6">
+        <label for="meeting-email" class="form-label">Billing Email</label>
+        <input type="email" id="meeting-email" class="form-control" maxlength="100" required placeholder="name@example.com">
+    </div>
+</div>
+<!-- Centered Participant Input Form -->
+<form id="participant-form">
+    <div class="d-flex flex-wrap justify-content-center gap-4 align-items-end mb-4">
+        <div style="min-width:120px;">
+            <label for="currency" class="form-label">Currency</label>
+            <select id="currency" class="form-select text-center" required>
+                <option value="USD">$ USD</option>
+                <option value="GBP">£ GBP</option>
+                <option value="CAD">$ CAD</option>
+                <option value="DKK">kr DKK</option>
+                <option value="JPY">¥ JPY</option>
+                <option value="CNY">¥ CNY</option>
+                <option value="ARS">$ ARS</option>
+                <option value="BRL">R$ BRL</option>
+                <option value="INR">₹ INR</option>
+            </select>
+        </div>
+        <div style="min-width:120px;">
+            <label for="rate" class="form-label">Billing Rate</label>
+            <input type="number" id="rate" class="form-control text-center" step="0.01" required placeholder="e.g. 50">
+        </div>
+        <div style="min-width:120px;">
+            <label for="rate-type" class="form-label">Pay Type</label>
+            <select id="rate-type" class="form-select text-center" required onchange="toggleHoursDay()">
+                <option value="hourly">Hourly</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Biweekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+        </div>
+        <div id="hours-group" style="min-width:120px;">
+            <label for="hours" class="form-label">Hours/Day</label>
+            <input type="number" id="hours" class="form-control text-center" step="0.5" value="8" placeholder="e.g. 8">
+        </div>
+        <div style="min-width:110px;">
+            <label for="count" class="form-label"># of people at this billing rate</label>
+            <input type="number" id="count" class="form-control text-center" min="1" value="1" required>
+        </div>
+        <div style="min-width:180px;">
+            <label for="comment" class="form-label">Comments/Labels</label>
+            <input type="text" id="comment" class="form-control text-center" maxlength="100" placeholder="Role or Notes">
+        </div>
+        <div class="d-flex flex-column justify-content-end" style="min-width:100px;">
+            <button type="button" class="btn btn-primary mt-4 w-100" onclick="addParticipant()">Add</button>
+        </div>
+    </div>
+</form>
+<!-- Participant Table -->
+<div class="participants-table mt-4" id="participants-table" style="display:none;">
+    <table class="table table-bordered align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Label</th>
+                <th>Rate</th>
+                <th>Currency</th>
+                <th>Type</th>
+                <th>Hours/Day</th>
+                <th>People</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody id="participants-tbody"></tbody>
+    </table>
+</div>
+<div class="text-center mt-4">
+    <button class="btn btn-success" onclick="startMeeting()" style="font-size:1.2rem; padding:0.75rem 2rem;">START MEETING</button>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+let participantList = [], participantIdCounter = 1;
+
+function toggleHoursDay() {
+    const type = document.getElementById('rate-type').value;
+    const group = document.getElementById('hours-group');
+    if (type === 'hourly') {
+        group.style.display = 'none';
+        document.getElementById('hours').required = false;
+    } else {
+        group.style.display = 'inline-block';
+        document.getElementById('hours').required = true;
+    }
+}
+window.onload = toggleHoursDay;
+
+function addParticipant() {
+    const currency = document.getElementById('currency').value;
+    const rate = parseFloat(document.getElementById('rate').value);
+    const rateType = document.getElementById('rate-type').value;
+    let hours = 8;
+    if (rateType !== 'hourly') {
+        hours = parseFloat(document.getElementById('hours').value);
+        if (!hours) {
+            alert('Hours/day is required!');
+            return;
+        }
+    }
+    const count = parseInt(document.getElementById('count').value);
+    const comment = document.getElementById('comment').value || '';
+    if (!rate || !count || !rateType) {
+        alert('Fill out all required fields!');
+        return;
+    }
+    participantList.push({
+        rowId: `pid-${participantIdCounter++}`,
+        currency, rate, rateType, hoursPerDay: hours, count, comment
+    });
+    renderParticipantsTable();
+    document.getElementById('rate').value = '';
+    document.getElementById('count').value = 1;
+    document.getElementById('comment').value = '';
+    if (rateType !== 'hourly') document.getElementById('hours').value = 8;
+}
+function renderParticipantsTable() {
+    const table = document.getElementById('participants-table');
+    const tbody = document.getElementById('participants-tbody');
+    tbody.innerHTML = '';
+    participantList.forEach((p, idx) => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${idx+1}</td>
+            <td>${p.comment}</td>
+            <td>${p.currency} $${p.rate.toFixed(2)}</td>
+            <td>${p.currency}</td>
+            <td>${capitalize(p.rateType)}</td>
+            <td>${p.rateType == 'hourly' ? '-' : p.hoursPerDay}</td>
+            <td>${p.count}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteParticipant('${p.rowId}')">🗑️</button></td>
+        </tr>`;
+    });
+    table.style.display = participantList.length ? 'block' : 'none';
+}
+function deleteParticipant(rowId) {
+    participantList = participantList.filter(p => p.rowId !== rowId);
+    renderParticipantsTable();
+}
+function capitalize(word) { return word.charAt(0).toUpperCase() + word.slice(1); }
+function startMeeting() {
+    if (participantList.length === 0) {
+        alert("Add at least one participant type!");
+        return;
+    }
+    const meetingName = document.getElementById('meeting-name').value;
+    const meetingEmail = document.getElementById('meeting-email').value;
+    if (!meetingName || !meetingEmail) {
+        alert("Fill out meeting name and email!");
+        return;
+    }
+    fetch('/add_participant', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            batch: participantList,
+            meetingName,
+            meetingEmail
+        })
+    }).then(() => {
+        window.location.href = '/meeting';
+    });
+}
+</script>
+{% endblock %}

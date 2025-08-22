@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4 text-center">Meeting Summary: {{ meeting_name }}</h1>
+<div class="mb-3"><strong>Start:</strong> {{ meeting_start }}</div>
+<div class="mb-3"><strong>End:</strong> {{ meeting_end }}</div>
+<div class="mb-3"><strong>Duration:</strong> {{ duration_minutes }}:{{ "%02d"|format(duration_seconds) }}</div>
+<div class="mb-3 text-muted">All costs below are converted to USD using current exchange rates for all calculations.</div>
+<div class="mb-3">
+    <span class="display-6 fw-bold text-danger">
+        Total Meeting Cost: ${{ "%.2f"|format(total_cost) }} USD
+    </span>
+    <br>
+    <span>Cost per Second: ${{ "%.4f"|format(cost_per_second) }} USD</span>
+</div>
+<h5 class="mt-4">Participants Table</h5>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Label</th>
+            <th>Rate</th>
+            <th>Currency</th>
+            <th>Type</th>
+            <th>Hours/Day</th>
+            <th>People</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in participant_table %}
+        <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ p.comment }}</td>
+            <td>{{ p.currency }} ${{ "%.2f"|format(p.rate) }}</td>
+            <td>{{ p.currency }}</td>
+            <td>{{ p.rateType|capitalize }}</td>
+            <td>{{ p.rateType == 'hourly' and '-' or p.hoursPerDay }}</td>
+            <td>{{ p.count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<!-- Spaced Out Buttons -->
+<div class="text-center mt-5 mb-2 d-flex flex-column align-items-center gap-4">
+    <a href="/" class="btn btn-primary btn-lg w-100" style="max-width:320px;">NEW MEETING</a>
+    <a id="send-bill" class="btn btn-outline-secondary w-100" style="max-width:320px;" href="#">Send Bill</a>
+</div>
+<script>
+const mailSubject = `Meeting Bill: {{ meeting_name }}`;
+const mailBodyParts = [];
+mailBodyParts.push(`Meeting Name: {{ meeting_name }}`);
+mailBodyParts.push(`Start: {{ meeting_start }}`);
+mailBodyParts.push(`End: {{ meeting_end }}`);
+mailBodyParts.push(`Duration: {{ duration_minutes }}:{{ "%02d"|format(duration_seconds) }}`);
+mailBodyParts.push(`Total Cost: ${{ "%.2f"|format(total_cost) }} USD`);
+mailBodyParts.push(`Cost per Second: ${{ "%.4f"|format(cost_per_second) }} USD`);
+mailBodyParts.push(``);
+mailBodyParts.push(`Participant Details:`);
+{% for p in participant_table %}
+mailBodyParts.push(`- {{ p.comment or "(no label)" }}
+    Rate: {{ p.currency }} ${{ "%.2f"|format(p.rate) }}
+    Pay Type: {{ p.rateType|capitalize }}
+    {% if p.rateType != 'hourly' %}Hours/Day: {{ p.hoursPerDay }}
+    {% endif %}Count: {{ p.count }}`);
+{% endfor %}
+const mailBody = mailBodyParts.join('\n');
+document.getElementById('send-bill').href =
+    "mailto:{{ meeting_email }}?subject=" + encodeURIComponent(mailSubject)
+    + "&body=" + encodeURIComponent(mailBody);
+</script>
+{% endblock %}
